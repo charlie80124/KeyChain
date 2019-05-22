@@ -25,13 +25,16 @@ struct KeyChain {
 
     private init() {}
 
-    func save(key:String, password:String) throws -> Bool {
+    func save(key:String, password:String) throws {
         guard let data = password.data(using: .utf8) else { throw KeyChainError.unexpectPasswordData }
         var query = KeyChain.query()
         query[String(kSecAttrAccount)] = key
         query[String(kSecValueData)] = data
         let status = SecItemAdd(query as CFDictionary, nil)
-        return status == noErr
+
+        if let error = getErrorMessage(status: status) {
+            throw error
+        }
     }
 
     func load(key:String) throws -> Data? {
@@ -43,27 +46,24 @@ struct KeyChain {
         var dataType: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &dataType)
 
-        if let errMsg = getErrorMessage(status: status) {
-            throw KeyChainError.unhandleError(errMsg: errMsg)
+        if let error = getErrorMessage(status: status) {
+            throw error
         }
-
         return dataType as? Data
     }
 
 
-    func delete(key:String) throws -> Bool {
+    func delete(key:String) throws {
         var query = KeyChain.query()
         query[String(kSecAttrAccount)] = key
         let status = SecItemDelete(query as CFDictionary)
 
-        if let errMsg =  getErrorMessage(status: status) {
-            throw KeyChainError.unhandleError(errMsg: errMsg)
+        if let error =  getErrorMessage(status: status) {
+            throw error
         }
-
-        return status == noErr
     }
 
-    func update(key:String, data:Data, newkey:String, newData:Data) throws -> Bool {
+    func update(key:String, data:Data, newkey:String, newData:Data) throws {
         //old
         var query = KeyChain.query()
         query[String(kSecValueData)] = data
@@ -76,21 +76,17 @@ struct KeyChain {
 
         let status = SecItemUpdate(query as CFDictionary, attributes as CFDictionary )
 
-        if let errMsg =  getErrorMessage(status: status) {
-            throw KeyChainError.unhandleError(errMsg: errMsg)
+        if let error =  getErrorMessage(status: status) {
+            throw error
         }
-
-        return status == noErr
     }
 
-    func clear() throws -> Bool {
+    func clear() throws {
         let query = KeyChain.query()
         let status = SecItemDelete(query as CFDictionary)
-
-        if let errMsg =  getErrorMessage(status: status) {
-            throw KeyChainError.unhandleError(errMsg: errMsg)
+        if let error =  getErrorMessage(status: status) {
+            throw error
         }
-        return status == noErr
     }
 
     private static func query() -> [String:Any] {
@@ -99,19 +95,16 @@ struct KeyChain {
         return query
     }
 
-    private func getErrorMessage(status: OSStatus) -> String? {
+    private func getErrorMessage(status: OSStatus) -> KeyChainError? {
 
         if status == noErr {
             return nil
         }else if let message = SecCopyErrorMessageString(status, nil) {
             let msg = String(message)
             printLog(msg)
-            return msg
+            return .unhandleError(errMsg:msg)
         }else{
             return nil
         }
     }
-
-
 }
-
