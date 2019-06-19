@@ -17,16 +17,14 @@ struct KeyChain {
 
 
     enum KeyChainError:Error {
-        case unexpectPasswordData
-        case unhandleError(errMsg:String)
+        case handleError(errMsg:String)
     }
 
     static let current = KeyChain()
 
     private init() {}
 
-    func save(key:String, password:String) throws {
-        guard let data = password.data(using: .utf8) else { throw KeyChainError.unexpectPasswordData }
+    func save(key:String, data:Data) throws {
         var query = KeyChain.query()
         query[String(kSecAttrAccount)] = key
         query[String(kSecValueData)] = data
@@ -102,7 +100,7 @@ struct KeyChain {
         }else if let message = SecCopyErrorMessageString(status, nil) {
             let msg = String(message)
             printLog(msg)
-            return .unhandleError(errMsg:msg)
+            return .handleError(errMsg:msg)
         }else{
             return nil
         }
