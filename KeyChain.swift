@@ -19,9 +19,6 @@ struct KeyChain {
     enum KeyChainError:Error {
         case handleError(errMsg:String)
     }
-
-    static let current = KeyChain()
-
     private init() {}
 
     func save(key:String, data:Data) throws {
